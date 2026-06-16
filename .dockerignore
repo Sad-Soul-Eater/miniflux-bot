@@ -1,0 +1,7 @@
+.venv
+.git
+.idea
+.env*
+*.sqlite
+__pycache__
+*.pyc

@@ -1,0 +1,41 @@
+{
+  $schema: "https://docs.renovatebot.com/renovate-schema.json",
+
+  extends: [
+    "config:recommended",
+    'docker:enableMajor',
+    'helpers:pinGitHubActionDigests',
+  ],
+  configMigration: true,
+  osvVulnerabilityAlerts: true,
+  automergeType: 'pr',
+  labels: ['renovate'],
+  prBodyTemplate: "{{{header}}}{{{table}}}{{{warnings}}}{{{notes}}}{{{changelogs}}}{{{controls}}}",
+
+  lockFileMaintenance: {
+    enabled: true,
+  },
+
+  packageRules: [
+    {
+      matchPackageNames: ["python"],
+      groupName: "python",
+    },
+    {
+      // Auto-merge low-risk updates once CI is green. Minor/major stay manual.
+      // `pinDigest`/`digest` cover the SHA-pinned GitHub Actions.
+      matchUpdateTypes: ["patch", "pin", "pinDigest", "digest", "lockFileMaintenance"],
+      automerge: true,
+    },
+  ],
+
+  customManagers: [
+    {
+      customType: "regex",
+      managerFilePatterns: ["/^\\.python-version$/"],
+      matchStrings: ["(?<currentValue>\\d+\\.\\d+\\.\\d+)"],
+      depNameTemplate: "python",
+      datasourceTemplate: "python-version",
+    },
+  ],
+}
