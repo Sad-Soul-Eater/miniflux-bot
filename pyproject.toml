@@ -15,5 +15,6 @@ build-backend = "hatchling.build"
 
 [dependency-groups]
 dev = [
+    "pyrefly==1.0.0",
     "ruff==0.15.17",
 ]
