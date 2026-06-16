@@ -56,7 +56,7 @@ class TelegramBot(Notifier):
         }
 
     def _generate_keyboard(
-            self, entry_id: int, actions: list[str]
+        self, entry_id: int, actions: list[str]
     ) -> InlineKeyboardMarkup:
         buttons = [
             [self._actions[action].generate_button(entry_id) for action in actions]
@@ -87,7 +87,7 @@ class TelegramBot(Notifier):
             raise TransientNotifierException(str(exc)) from exc
 
     async def _on_action(
-            self, callback: CallbackQuery, callback_data: EntryActionCallbackData
+        self, callback: CallbackQuery, callback_data: EntryActionCallbackData
     ):
         entry_id = callback_data.id
         action = callback_data.action

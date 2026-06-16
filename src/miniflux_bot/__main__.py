@@ -34,7 +34,9 @@ async def main():
             state_store = SqliteStateStore(path=":memory:")
         case "sqlite":
             sqlite_store_path = require_env("MINIFLUX_SQLITE_STORE_PATH")
-            state_store = SqliteStateStore(path=os.path.join(sqlite_store_path, "bot.sqlite"))
+            state_store = SqliteStateStore(
+                path=os.path.join(sqlite_store_path, "bot.sqlite")
+            )
         case _:
             raise RuntimeError(f"Unknown store backend: {store_backend!r}")
 

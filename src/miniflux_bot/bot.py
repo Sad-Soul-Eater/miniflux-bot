@@ -12,11 +12,11 @@ from miniflux_bot.state import StateStore
 
 class MinifluxBot:
     def __init__(
-            self,
-            state_store: StateStore,
-            gateway: MinifluxGateway,
-            poll_interval: int,
-            notifier: Notifier,
+        self,
+        state_store: StateStore,
+        gateway: MinifluxGateway,
+        poll_interval: int,
+        notifier: Notifier,
     ):
         self._processed_id = 0
         self._enqueued_id = 0
@@ -52,9 +52,9 @@ class MinifluxBot:
                             self._enqueued_id = entry.id
 
                 except (
-                        miniflux.ClientError,
-                        requests.exceptions.ConnectionError,
-                        requests.exceptions.Timeout,
+                    miniflux.ClientError,
+                    requests.exceptions.ConnectionError,
+                    requests.exceptions.Timeout,
                 ) as exc:
                     logging.exception(
                         "Fetch failed with: %s; will retry next interval", exc
@@ -80,7 +80,7 @@ class MinifluxBot:
                     if exc.retry_after is not None:
                         delay = exc.retry_after
                     else:
-                        delay = min(self._retry_cap, 2 ** entry.attempt)
+                        delay = min(self._retry_cap, 2**entry.attempt)
 
                     logging.warning(
                         "Transient failure on %d (attempt %d), re-queuing in %.0fs: %s",
