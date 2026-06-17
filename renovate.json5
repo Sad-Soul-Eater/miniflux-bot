@@ -22,8 +22,6 @@
       groupName: "python",
     },
     {
-      // Auto-merge low-risk updates once CI is green. Minor/major stay manual.
-      // `pinDigest`/`digest` cover the SHA-pinned GitHub Actions.
       matchUpdateTypes: ["patch", "pin", "pinDigest", "digest", "lockFileMaintenance"],
       automerge: true,
     },

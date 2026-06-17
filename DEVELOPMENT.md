@@ -53,7 +53,8 @@ CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs on every push a
 - **lint** - `ruff check` + `ruff format --check`
 - **build** - `uv sync --locked` (fails if `uv.lock` drifts from `pyproject.toml`) and an import smoke test that pulls
   in the whole module graph
-- **docker** - a Docker build to catch Dockerfile regressions
+- **docker** - a Docker build to catch Dockerfile regressions. On pushes to `main` it also pushes the image to GHCR
+  tagged `main` (a rolling latest-commit image) and `sha-<short>`
 
 Dependencies and GitHub Actions are kept current by Renovate ([`renovate.json5`](renovate.json5)); low-risk updates (
 patch, digest, lockfile maintenance) automerge once CI is green.
