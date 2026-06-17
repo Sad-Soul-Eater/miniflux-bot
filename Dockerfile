@@ -2,12 +2,9 @@
 FROM python:3.14.6-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.11.21 /uv /uvx /bin/
 
-ARG VERSION=0.0.0
-
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0 \
-    SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MINIFLUX_BOT=${VERSION}
+    UV_PYTHON_DOWNLOADS=0
 
 # Change the working directory to the `app` directory
 WORKDIR /app
@@ -17,6 +14,9 @@ RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
     --mount=type=bind,source=uv.lock,target=uv.lock \
     uv sync --locked --no-install-project --no-dev --no-editable
+
+ARG VERSION=0.0.0
+ENV SETUPTOOLS_SCM_PRETEND_VERSION=${VERSION}
 
 # Copy the project into the intermediate image
 COPY . /app
