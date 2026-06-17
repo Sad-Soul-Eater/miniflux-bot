@@ -40,19 +40,18 @@ class MinifluxBot:
             logging.info("Poll loop started")
             while True:
                 try:
-                    latest_entry = await self._gateway.get_latest_unread()
+                    unprocessed_entries = await self._gateway.get_unread_since(
+                        self._enqueued_id
+                    )
 
-                    if latest_entry is not None and latest_entry.id > self._enqueued_id:
-                        unprocessed_entries = await self._gateway.get_unread_since(
-                            self._enqueued_id
-                        )
+                    if unprocessed_entries:
                         logging.info(
                             "Unprocessed entries: %d", len(unprocessed_entries)
                         )
 
-                        for entry in unprocessed_entries:
-                            await self._queue.put(entry)
-                            self._enqueued_id = entry.id
+                    for entry in unprocessed_entries:
+                        await self._queue.put(entry)
+                        self._enqueued_id = entry.id
 
                 except (
                     miniflux.ClientError,
