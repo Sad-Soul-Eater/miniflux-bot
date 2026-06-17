@@ -1,10 +1,11 @@
+import asyncio
 import logging
+from collections.abc import Coroutine
 from dataclasses import dataclass
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import (
-    TelegramBadRequest,
     TelegramNetworkError,
     TelegramRetryAfter,
     TelegramServerError,
@@ -97,7 +98,6 @@ class TelegramBot(Notifier):
             await callback.answer("Message no longer available")
             return
 
-        answered = False
         try:
             logging.info(
                 "Get action for message: id=%d, action=%s, entry_id=%d",
@@ -105,46 +105,48 @@ class TelegramBot(Notifier):
                 action,
                 entry_id,
             )
+
+            message_method: Coroutine | None = None
+            gateway_method: Coroutine | None = None
+
             match action:
                 case "delete":
-                    await self._gateway.mark_read(entry_id)
-                    await self._bot.delete_message(
+                    message_method = self._bot.delete_message(
                         chat_id=message.chat.id,
                         message_id=message.message_id,
                     )
+                    gateway_method = self._gateway.mark_read(entry_id)
                 case "read" | "unread":
                     match action:
                         case "read":
                             toggled = "unread"
-                            await self._gateway.mark_read(entry_id)
+                            gateway_method = self._gateway.mark_read(entry_id)
                         case "unread":
                             toggled = "read"
-                            await self._gateway.mark_unread(entry_id)
+                            gateway_method = self._gateway.mark_unread(entry_id)
 
                     keyboard = self._generate_keyboard(
                         entry_id=entry_id, actions=[toggled, "delete"]
                     )
 
-                    await self._bot.edit_message_reply_markup(
+                    message_method = self._bot.edit_message_reply_markup(
                         chat_id=message.chat.id,
                         message_id=message.message_id,
                         reply_markup=keyboard,
                     )
 
-        except TelegramBadRequest as exc:
-            logging.exception(
-                "Action '%s' failed with: %s", action, exc, exc_info=False
-            )
-            if not answered:
-                await callback.answer(
-                    f"Action '{action}' failed with: {exc}", show_alert=True
+            if message_method is not None and gateway_method is not None:
+                await asyncio.gather(
+                    self._bot.answer_callback_query(callback.id),
+                    message_method,
+                    gateway_method,
                 )
-                answered = True
-            return
+            else:
+                await self._bot.answer_callback_query(callback.id)
 
-        finally:
-            if not answered:
-                await callback.answer()
+        except Exception as exc:
+            logging.exception("Action '%s' failed with: %s", action, exc)
+            return
 
     async def run(self) -> None:
         await self._dp.start_polling(self._bot, handle_signals=False)
