@@ -48,6 +48,8 @@ jobs:
             VERSION=${{ steps.meta.outputs.version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
+          provenance: true
+          sbom: true
 
       # Cut a GitHub Release with auto-generated notes from merged PRs.
       - uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
