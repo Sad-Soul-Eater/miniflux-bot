@@ -82,7 +82,7 @@ class MinifluxBot:
                     if exc.retry_after is not None:
                         delay = exc.retry_after
                     else:
-                        delay = min(self._retry_cap, 2**entry.attempt)
+                        delay = min(self._retry_cap, 2 ** min(entry.attempt, 16))
 
                     logging.warning(
                         "Transient failure on %d (attempt %d), re-queuing in %.0fs: %s",
