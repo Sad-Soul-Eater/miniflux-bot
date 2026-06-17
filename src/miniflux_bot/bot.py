@@ -18,14 +18,16 @@ class MinifluxBot:
         poll_interval: int,
         notifier: Notifier,
     ):
+        self._store = state_store
+        self._gateway = gateway
+        self._poll_interval = poll_interval
+        self._notifier = notifier
+
         self._processed_id = 0
         self._enqueued_id = 0
-        self._queue = asyncio.Queue()
-        self._store = state_store
-        self._poll_interval = poll_interval
-        self._gateway = gateway
         self._retry_cap = 300
-        self._notifier = notifier
+
+        self._queue = asyncio.Queue()
 
     async def _set_processed_id(self, entry_id: int):
         if entry_id > self._processed_id:

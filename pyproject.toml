@@ -1,6 +1,6 @@
 [project]
 name = "miniflux-bot"
-version = "1.0.0"
+dynamic = ["version"]
 requires-python = ">=3.14"
 dependencies = [
     "aiogram==3.29.0",
@@ -10,8 +10,11 @@ dependencies = [
 ]
 
 [build-system]
-requires = ["hatchling"]
+requires = ["hatchling", "hatch-vcs"]
 build-backend = "hatchling.build"
+
+[tool.hatch.version]
+source = "vcs"
 
 [dependency-groups]
 dev = [

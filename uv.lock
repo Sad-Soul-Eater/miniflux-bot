@@ -248,7 +248,6 @@ wheels = [
 
 [[package]]
 name = "miniflux-bot"
-version = "1.0.0"
 source = { editable = "." }
 dependencies = [
     { name = "aiogram" },

@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+from importlib.metadata import version
 
 import miniflux
 from dotenv import load_dotenv
@@ -17,6 +18,7 @@ async def main():
         level=logging.INFO,
         format="%(asctime)s [%(taskName)s] %(levelname)s %(message)s",
     )
+    logging.info("Starting miniflux-bot %s", version("miniflux-bot"))
 
     load_dotenv()
 

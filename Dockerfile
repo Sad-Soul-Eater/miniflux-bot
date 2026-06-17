@@ -2,9 +2,12 @@
 FROM python:3.14.6-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.11.21 /uv /uvx /bin/
 
+ARG VERSION=0.0.0
+
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
-    UV_PYTHON_DOWNLOADS=0
+    UV_PYTHON_DOWNLOADS=0 \
+    SETUPTOOLS_SCM_PRETEND_VERSION_FOR_MINIFLUX_BOT=${VERSION}
 
 # Change the working directory to the `app` directory
 WORKDIR /app
