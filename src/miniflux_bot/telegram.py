@@ -41,7 +41,7 @@ class EntryAction:
 
 
 class TelegramBot(Notifier):
-    def __init__(self, token: str, chat_id: int, gateway: MinifluxGateway):
+    def __init__(self, token: str, chat_id: int, gateway: MinifluxGateway) -> None:
         self._bot = Bot(
             token=token, default=DefaultBotProperties(disable_notification=True)
         )
@@ -63,7 +63,7 @@ class TelegramBot(Notifier):
         ]
         return InlineKeyboardMarkup(inline_keyboard=buttons)
 
-    async def notify(self, entry: Entry):
+    async def notify(self, entry: Entry) -> None:
         content = Text(
             Bold(entry.feed_title),
             " - ",
@@ -88,7 +88,7 @@ class TelegramBot(Notifier):
 
     async def _on_action(
         self, callback: CallbackQuery, callback_data: EntryActionCallbackData
-    ):
+    ) -> None:
         entry_id = callback_data.id
         action = callback_data.action
         message = callback.message
@@ -141,5 +141,5 @@ class TelegramBot(Notifier):
         finally:
             await callback.answer()
 
-    async def run(self):
+    async def run(self) -> None:
         await self._dp.start_polling(self._bot, handle_signals=False)

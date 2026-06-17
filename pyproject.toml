@@ -18,6 +18,6 @@ source = "vcs"
 
 [dependency-groups]
 dev = [
-    "pyrefly==1.0.0",
     "ruff==0.15.17",
+    "ty==0.0.49",
 ]

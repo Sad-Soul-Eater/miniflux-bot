@@ -8,19 +8,22 @@ class StateStore(ABC):
     async def get_processed_id(self) -> int: ...
 
     @abstractmethod
-    async def set_processed_id(self, entry_id: int): ...
+    async def set_processed_id(self, entry_id: int) -> None: ...
 
     @abstractmethod
-    async def init(self): ...
+    async def init(self) -> None: ...
 
     @abstractmethod
-    async def close(self): ...
+    async def close(self) -> None: ...
 
 
 class SqliteStateStore(StateStore):
-    def __init__(self, path: str):
+    def __init__(self, path: str) -> None:
         self._conn: sqlite3.Connection | None = None
         self._path = path
+
+    def _connect(self) -> sqlite3.Connection:
+        return sqlite3.connect(database=self._path, check_same_thread=False)
 
     @property
     def _connection(self) -> sqlite3.Connection:
@@ -28,19 +31,17 @@ class SqliteStateStore(StateStore):
             raise RuntimeError("StateStore not initialized - call init() first")
         return self._conn
 
-    async def init(self):
-        self._conn = await asyncio.to_thread(
-            sqlite3.connect, self._path, check_same_thread=False
-        )
+    async def init(self) -> None:
+        self._conn = await asyncio.to_thread(self._connect)
 
         await asyncio.to_thread(self._init_db)
 
-    async def close(self):
+    async def close(self) -> None:
         if self._conn is None:
             return
         await asyncio.to_thread(self._connection.close)
 
-    def _init_db(self):
+    def _init_db(self) -> None:
         with self._connection:
             self._connection.execute(
                 "CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value INTEGER)"
@@ -50,7 +51,7 @@ class SqliteStateStore(StateStore):
                 ("processed_id", 0),
             )
 
-    def _set(self, entry_id: int):
+    def _set(self, entry_id: int) -> None:
         with self._connection:
             self._connection.execute(
                 """

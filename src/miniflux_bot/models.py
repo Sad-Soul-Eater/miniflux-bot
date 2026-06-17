@@ -1,9 +1,9 @@
 class Entry:
-    def __init__(self, entry_dict: dict):
-        self.id = entry_dict["id"]
-        self.title = entry_dict["title"]
-        self.url = entry_dict["url"]
-        self.feed_title = entry_dict["feed"]["title"]
+    def __init__(self, entry_dict: dict) -> None:
+        self.id: int = entry_dict["id"]
+        self.title: str = entry_dict["title"]
+        self.url: str = entry_dict["url"]
+        self.feed_title: str = entry_dict["feed"]["title"]
         self.attempt: int = 0
 
     def __lt__(self, other: Entry, /) -> bool:

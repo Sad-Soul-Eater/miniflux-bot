@@ -13,7 +13,7 @@ from miniflux_bot.state import SqliteStateStore, StateStore
 from miniflux_bot.telegram import TelegramBot
 
 
-async def main():
+async def main() -> None:
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s [%(taskName)s] %(levelname)s %(message)s",

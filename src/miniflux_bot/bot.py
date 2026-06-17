@@ -1,5 +1,6 @@
 import asyncio
 import logging
+from typing import Never
 
 import miniflux
 import requests
@@ -17,7 +18,7 @@ class MinifluxBot:
         gateway: MinifluxGateway,
         poll_interval: int,
         notifier: Notifier,
-    ):
+    ) -> None:
         self._store = state_store
         self._gateway = gateway
         self._poll_interval = poll_interval
@@ -29,12 +30,12 @@ class MinifluxBot:
 
         self._queue = asyncio.Queue()
 
-    async def _set_processed_id(self, entry_id: int):
+    async def _set_processed_id(self, entry_id: int) -> None:
         if entry_id > self._processed_id:
             await self._store.set_processed_id(entry_id)
             self._processed_id = entry_id
 
-    async def _poll_loop(self):
+    async def _poll_loop(self) -> Never:
         try:
             logging.info("Poll loop started")
             while True:
@@ -67,7 +68,7 @@ class MinifluxBot:
             logging.info("Poll loop cancelled")
             raise
 
-    async def _process_loop(self):
+    async def _process_loop(self) -> Never:
         loop = asyncio.get_running_loop()
         try:
             logging.info("Process loop started")
@@ -103,7 +104,7 @@ class MinifluxBot:
             logging.info("Process loop cancelled")
             raise
 
-    async def run(self):
+    async def run(self) -> None:
         self._processed_id = await self._store.get_processed_id()
         self._enqueued_id = self._processed_id
         try:
