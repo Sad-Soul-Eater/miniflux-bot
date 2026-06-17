@@ -22,12 +22,12 @@ async def main():
 
     load_dotenv()
 
-    store_backend = require_env("MINIFLUX_STORE_BACKEND")
     url = require_env("MINIFLUX_URL")
     api_key = require_env("MINIFLUX_API_KEY")
     poll_interval = int(os.getenv("MINIFLUX_POLL_INTERVAL", 60))
     tg_bot_token = require_env("TELEGRAM_BOT_TOKEN")
     tg_chat_id = int(require_env("TELEGRAM_CHAT_ID"))
+    store_backend = os.getenv("MINIFLUX_STORE_BACKEND", "sqlite")
 
     state_store: StateStore
 
@@ -35,7 +35,7 @@ async def main():
         case "memory":
             state_store = SqliteStateStore(path=":memory:")
         case "sqlite":
-            sqlite_store_path = require_env("MINIFLUX_SQLITE_STORE_PATH")
+            sqlite_store_path = os.getenv("MINIFLUX_SQLITE_STORE_PATH", "/data")
             state_store = SqliteStateStore(
                 path=os.path.join(sqlite_store_path, "bot.sqlite")
             )

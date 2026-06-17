@@ -36,6 +36,8 @@ class SqliteStateStore(StateStore):
         await asyncio.to_thread(self._init_db)
 
     async def close(self):
+        if self._conn is None:
+            return
         await asyncio.to_thread(self._connection.close)
 
     def _init_db(self):
