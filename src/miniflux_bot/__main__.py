@@ -1,6 +1,7 @@
 import asyncio
 import logging
 import os
+import signal
 from importlib.metadata import version
 
 import miniflux
@@ -68,6 +69,7 @@ async def main() -> None:
 
 
 if __name__ == "__main__":
+    signal.signal(signal.SIGTERM, signal.default_int_handler)
     try:
         asyncio.run(main())
     except KeyboardInterrupt:
