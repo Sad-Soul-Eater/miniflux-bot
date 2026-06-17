@@ -5,13 +5,13 @@ from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import (
     TelegramBadRequest,
+    TelegramNetworkError,
     TelegramRetryAfter,
     TelegramServerError,
-    TelegramNetworkError,
 )
 from aiogram.filters.callback_data import CallbackData
-from aiogram.types import InlineKeyboardButton, InlineKeyboardMarkup, CallbackQuery
-from aiogram.utils.formatting import Text, Bold, TextLink
+from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
+from aiogram.utils.formatting import Bold, Text, TextLink
 
 from miniflux_bot.gateway import MinifluxGateway
 from miniflux_bot.models import Entry
@@ -97,6 +97,7 @@ class TelegramBot(Notifier):
             await callback.answer("Message no longer available")
             return
 
+        answered = False
         try:
             logging.info(
                 "Get action for message: id=%d, action=%s, entry_id=%d",
@@ -132,14 +133,18 @@ class TelegramBot(Notifier):
 
         except TelegramBadRequest as exc:
             logging.exception(
-                "Message '%s' failed with: %s", action, exc, exc_info=False
+                "Action '%s' failed with: %s", action, exc, exc_info=False
             )
-            await callback.answer(
-                f"Message '{action}' failed with: {exc}", show_alert=True
-            )
+            if not answered:
+                await callback.answer(
+                    f"Action '{action}' failed with: {exc}", show_alert=True
+                )
+                answered = True
             return
+
         finally:
-            await callback.answer()
+            if not answered:
+                await callback.answer()
 
     async def run(self) -> None:
         await self._dp.start_polling(self._bot, handle_signals=False)
