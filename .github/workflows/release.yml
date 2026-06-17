@@ -51,7 +51,12 @@ jobs:
           provenance: true
           sbom: true
 
-      # Cut a GitHub Release with auto-generated notes from merged PRs.
+      - id: changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          args: --latest --strip header
+
+      # Cut a GitHub Release with the git-cliff changelog as the body.
       - uses: softprops/action-gh-release@b4309332981a82ec1c5618f44dd2e27cc8bfbfda # v3
         with:
-          generate_release_notes: true
+          body: ${{ steps.changelog.outputs.content }}
