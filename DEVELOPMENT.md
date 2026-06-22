@@ -17,6 +17,10 @@ The bot runs two cooperating async tasks:
 Delivery is at-least-once and ordered by entry ID. The highest successfully-delivered entry ID is persisted as
 `processed_id`, so the bot resumes where it left off after a restart instead of replaying old entries.
 
+State lives behind the `StateStore` interface, chosen by `MINIFLUX_STORE_BACKEND`: `SqliteStateStore` (backing both the
+`sqlite` file and the in-memory `:memory:` backend) or `PostgresStateStore`. SQLite wraps the synchronous `sqlite3`
+driver in `asyncio.to_thread`; Postgres uses psycopg's native async API (no thread offloading needed).
+
 Transient failures (Telegram rate limits, network/server errors) re-queue the entry with backoff - honoring Telegram's
 `retry_after` when provided, otherwise exponential backoff capped at 300s. Non-transient errors drop the entry and log
 it.
@@ -29,7 +33,7 @@ it.
 | `bot.py`      | `MinifluxBot` - poll loop, delivery queue, retry/backoff                   |
 | `telegram.py` | `TelegramBot` - sends messages, handles inline button callbacks            |
 | `gateway.py`  | `MinifluxGateway` - async wrapper over the Miniflux client                 |
-| `state.py`    | `StateStore` / `SqliteStateStore` - persists `processed_id`                |
+| `state.py`    | `StateStore` ABC + SQLite/Postgres backends - persists `processed_id`      |
 | `notifier.py` | `Notifier` interface and transient-failure exception                       |
 | `models.py`   | `Entry` domain model                                                       |
 | `config.py`   | Environment variable helpers                                               |
@@ -80,5 +84,6 @@ to a `0.0.0` default.
 ## Tech stack
 
 [aiogram](https://docs.aiogram.dev/) for Telegram, the official [miniflux](https://pypi.org/project/miniflux/) client
-for the feed reader, and [python-dotenv](https://pypi.org/project/python-dotenv/) for local configuration. Managed
-with [uv](https://docs.astral.sh/uv/) and built with [hatchling](https://hatch.pypa.io/) + hatch-vcs.
+for the feed reader, [python-dotenv](https://pypi.org/project/python-dotenv/) for local configuration, and
+[psycopg](https://www.psycopg.org/psycopg3/) for the Postgres state backend. Managed with
+[uv](https://docs.astral.sh/uv/) and built with [hatchling](https://hatch.pypa.io/) + hatch-vcs.

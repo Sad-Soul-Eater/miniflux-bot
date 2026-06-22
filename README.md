@@ -19,15 +19,16 @@ them - straight from Telegram, with the action reflected back in Miniflux.
 Configuration is read from environment variables (a local `.env` file is loaded automatically). Copy `.env.example` to
 `.env` and fill it in:
 
-| Variable                     | Required | Default  | Description                                                       |
-|------------------------------|----------|----------|-------------------------------------------------------------------|
-| `MINIFLUX_URL`               | yes      | -        | Base URL of your Miniflux instance                                |
-| `MINIFLUX_API_KEY`           | yes      | -        | Miniflux API key                                                  |
-| `TELEGRAM_BOT_TOKEN`         | yes      | -        | Bot token from BotFather                                          |
-| `TELEGRAM_CHAT_ID`           | yes      | -        | Chat ID to deliver entries to                                     |
-| `MINIFLUX_STORE_BACKEND`     | no       | `sqlite` | State backend: `memory` or `sqlite`                               |
-| `MINIFLUX_POLL_INTERVAL`     | no       | `60`     | Seconds between Miniflux polls                                    |
-| `MINIFLUX_SQLITE_STORE_PATH` | no       | `/data`  | Directory for the SQLite file (`bot.sqlite` is created inside it) |
+| Variable                              | Required      | Default  | Description                                                       |
+|---------------------------------------|---------------|----------|-------------------------------------------------------------------|
+| `MINIFLUX_URL`                        | yes           | -        | Base URL of your Miniflux instance                                |
+| `MINIFLUX_API_KEY`                    | yes           | -        | Miniflux API key                                                  |
+| `TELEGRAM_BOT_TOKEN`                  | yes           | -        | Bot token from BotFather                                          |
+| `TELEGRAM_CHAT_ID`                    | yes           | -        | Chat ID to deliver entries to                                     |
+| `MINIFLUX_STORE_BACKEND`              | no            | `sqlite` | State backend: `memory`, `sqlite`, or `postgres`                  |
+| `MINIFLUX_POLL_INTERVAL`              | no            | `60`     | Seconds between Miniflux polls                                    |
+| `MINIFLUX_SQLITE_STORE_PATH`          | no            | `/data`  | Directory for the SQLite file (`bot.sqlite` is created inside it) |
+| `MINIFLUX_POSTGRES_CONNECTION_STRING` | if `postgres` | -        | libpq/DSN connection string for the Postgres database             |
 
 ### State backends
 
@@ -35,6 +36,9 @@ Configuration is read from environment variables (a local `.env` file is loaded 
   Fine for testing.
 - `sqlite` - a persistent database at `<MINIFLUX_SQLITE_STORE_PATH>/bot.sqlite`. Use this in production and mount the
   directory as a volume so progress survives restarts.
+- `postgres` - a Postgres database reached via the `MINIFLUX_POSTGRES_CONNECTION_STRING` DSN
+  (e.g. `postgresql://user:pass@host:5432/dbname`). The bot creates its `miniflux_bot_state` table automatically. Use
+  this when you run multiple replicas or already operate Postgres.
 
 ## Running
 

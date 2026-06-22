@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from miniflux_bot.bot import MinifluxBot
 from miniflux_bot.config import require_env
 from miniflux_bot.gateway import MinifluxGateway
-from miniflux_bot.state import SqliteStateStore, StateStore
+from miniflux_bot.state import PostgresStateStore, SqliteStateStore, StateStore
 from miniflux_bot.telegram import TelegramBot
 
 
@@ -40,6 +40,11 @@ async def main() -> None:
             state_store = SqliteStateStore(
                 path=os.path.join(sqlite_store_path, "bot.sqlite")
             )
+        case "postgres":
+            postgres_connection_string = require_env(
+                "MINIFLUX_POSTGRES_CONNECTION_STRING"
+            )
+            state_store = PostgresStateStore(postgres_connection_string)
         case _:
             raise RuntimeError(f"Unknown store backend: {store_backend!r}")
 
