@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 from miniflux_bot.bot import MinifluxBot
 from miniflux_bot.config import require_env
 from miniflux_bot.gateway import MinifluxGateway
-from miniflux_bot.state import PostgresStateStore, SqliteStateStore, StateStore
+from miniflux_bot.state import StateStore
 from miniflux_bot.telegram import TelegramBot
 
 
@@ -34,13 +34,19 @@ async def main() -> None:
 
     match store_backend:
         case "memory":
+            from miniflux_bot.state.sqlite import SqliteStateStore
+
             state_store = SqliteStateStore(path=":memory:")
         case "sqlite":
+            from miniflux_bot.state.sqlite import SqliteStateStore
+
             sqlite_store_path = os.getenv("MINIFLUX_SQLITE_STORE_PATH", "/data")
             state_store = SqliteStateStore(
                 path=os.path.join(sqlite_store_path, "bot.sqlite")
             )
         case "postgres":
+            from miniflux_bot.state.postgres import PostgresStateStore
+
             postgres_connection_string = require_env(
                 "MINIFLUX_POSTGRES_CONNECTION_STRING"
             )

@@ -75,8 +75,9 @@ class MinifluxBot:
                 entry: Entry = await self._queue.get()
                 try:
                     await self._notifier.notify(entry)
-                    logging.info("Processed: %d", entry.id)
+                    logging.info("Notified: %d", entry.id)
                     await self._set_processed_id(entry.id)
+                    logging.info("Saved: %d", entry.id)
                 except TransientNotifierException as exc:
                     entry.attempt += 1
                     if exc.retry_after is not None:
