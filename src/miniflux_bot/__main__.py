@@ -7,6 +7,7 @@ from importlib.metadata import version
 import miniflux
 from dotenv import load_dotenv
 
+from miniflux_bot.action_worker import MinifluxActionWorker
 from miniflux_bot.bot import MinifluxBot
 from miniflux_bot.config import require_env
 from miniflux_bot.gateway import MinifluxGateway
@@ -56,11 +57,12 @@ async def main() -> None:
 
     miniflux_client = miniflux.Client(base_url=url, api_key=api_key)
     miniflux_gateway = MinifluxGateway(miniflux_client)
+    miniflux_action_worker = MinifluxActionWorker(miniflux_gateway)
 
     telegram_bot = TelegramBot(
         token=tg_bot_token,
         chat_id=tg_chat_id,
-        gateway=miniflux_gateway,
+        action_worker=miniflux_action_worker,
     )
 
     miniflux_bot = MinifluxBot(
@@ -73,6 +75,7 @@ async def main() -> None:
     try:
         await state_store.init()
         async with asyncio.TaskGroup() as tg:
+            tg.create_task(miniflux_action_worker.run(), name="miniflux_action_worker")
             tg.create_task(telegram_bot.run(), name="telegram_bot")
             tg.create_task(miniflux_bot.run(), name="miniflux_bot")
     finally:

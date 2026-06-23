@@ -14,7 +14,7 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.formatting import Bold, Text, TextLink
 
-from miniflux_bot.gateway import MinifluxGateway
+from miniflux_bot.action_worker import MinifluxActionWorker
 from miniflux_bot.models import Entry
 from miniflux_bot.notifier import Notifier, TransientNotifierException
 
@@ -42,12 +42,17 @@ class EntryAction:
 
 
 class TelegramBot(Notifier):
-    def __init__(self, token: str, chat_id: int, gateway: MinifluxGateway) -> None:
+    def __init__(
+        self,
+        token: str,
+        chat_id: int,
+        action_worker: MinifluxActionWorker,
+    ) -> None:
         self._bot = Bot(
             token=token, default=DefaultBotProperties(disable_notification=True)
         )
         self._chat_id = chat_id
-        self._gateway = gateway
+        self._action_worker = action_worker
         self._dp = Dispatcher()
         self._dp.callback_query(EntryActionCallbackData.filter())(self._on_action)
         self._actions: dict[str, EntryAction] = {
@@ -107,7 +112,7 @@ class TelegramBot(Notifier):
             )
 
             message_method: Coroutine | None = None
-            gateway_method: Coroutine | None = None
+            action_method: Coroutine | None = None
 
             match action:
                 case "delete":
@@ -115,15 +120,15 @@ class TelegramBot(Notifier):
                         chat_id=message.chat.id,
                         message_id=message.message_id,
                     )
-                    gateway_method = self._gateway.mark_read(entry_id)
+                    action_method = self._action_worker.mark_read(entry_id)
                 case "read" | "unread":
                     match action:
                         case "read":
                             toggled = "unread"
-                            gateway_method = self._gateway.mark_read(entry_id)
+                            action_method = self._action_worker.mark_read(entry_id)
                         case "unread":
                             toggled = "read"
-                            gateway_method = self._gateway.mark_unread(entry_id)
+                            action_method = self._action_worker.mark_unread(entry_id)
 
                     keyboard = self._generate_keyboard(
                         entry_id=entry_id, actions=[toggled, "delete"]
@@ -135,11 +140,11 @@ class TelegramBot(Notifier):
                         reply_markup=keyboard,
                     )
 
-            if message_method is not None and gateway_method is not None:
+            if message_method is not None and action_method is not None:
                 await asyncio.gather(
                     self._bot.answer_callback_query(callback.id),
                     message_method,
-                    gateway_method,
+                    action_method,
                 )
             else:
                 await self._bot.answer_callback_query(callback.id)

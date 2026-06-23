@@ -2,10 +2,10 @@ import asyncio
 import logging
 from typing import Never
 
-import miniflux
-import requests
-
-from miniflux_bot.gateway import MinifluxGateway
+from miniflux_bot.gateway import (
+    GatewayException,
+    MinifluxGateway,
+)
 from miniflux_bot.models import Entry
 from miniflux_bot.notifier import Notifier, TransientNotifierException
 from miniflux_bot.state import StateStore
@@ -53,11 +53,7 @@ class MinifluxBot:
                         await self._queue.put(entry)
                         self._enqueued_id = entry.id
 
-                except (
-                    miniflux.ClientError,
-                    requests.exceptions.ConnectionError,
-                    requests.exceptions.Timeout,
-                ) as exc:
+                except GatewayException as exc:
                     logging.exception(
                         "Fetch failed with: %s; will retry next interval", exc
                     )
