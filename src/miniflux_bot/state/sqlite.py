@@ -1,7 +1,10 @@
 import asyncio
+import logging
 import sqlite3
 
 from miniflux_bot.state import StateStore
+
+logger = logging.getLogger(__name__)
 
 
 class SqliteStateStore(StateStore):
@@ -22,6 +25,7 @@ class SqliteStateStore(StateStore):
         self._conn = await asyncio.to_thread(self._connect)
 
         await asyncio.to_thread(self._init_db)
+        logger.info("SQLite state store ready at %s", self._path)
 
     async def close(self) -> None:
         if self._conn is None:
@@ -38,7 +42,7 @@ class SqliteStateStore(StateStore):
                 ("processed_id", 0),
             )
 
-    def _set(self, entry_id: int) -> None:
+    def _write_processed_id(self, entry_id: int) -> None:
         with self._connection:
             self._connection.execute(
                 """
@@ -49,13 +53,13 @@ class SqliteStateStore(StateStore):
                 ("processed_id", entry_id),
             )
 
-    def _get(self) -> int:
+    def _read_processed_id(self) -> int:
         return self._connection.execute(
             "SELECT value FROM state WHERE key = ?", ("processed_id",)
         ).fetchone()[0]
 
     async def get_processed_id(self) -> int:
-        return await asyncio.to_thread(self._get)
+        return await asyncio.to_thread(self._read_processed_id)
 
     async def set_processed_id(self, entry_id: int):
-        await asyncio.to_thread(self._set, entry_id)
+        await asyncio.to_thread(self._write_processed_id, entry_id)

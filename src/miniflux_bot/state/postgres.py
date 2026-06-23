@@ -1,6 +1,10 @@
+import logging
+
 from psycopg_pool import AsyncConnectionPool
 
 from miniflux_bot.state import StateStore
+
+logger = logging.getLogger(__name__)
 
 
 class PostgresStateStore(StateStore):
@@ -17,6 +21,11 @@ class PostgresStateStore(StateStore):
     async def init(self) -> None:
         await self._pool.open(wait=True)
         await self._init_db()
+        logger.info(
+            "Postgres pool opened (min=%d max=%d)",
+            self._pool.min_size,
+            self._pool.max_size,
+        )
 
     async def close(self) -> None:
         if self._pool.closed:

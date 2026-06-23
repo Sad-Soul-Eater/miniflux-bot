@@ -14,14 +14,16 @@ from aiogram.filters.callback_data import CallbackData
 from aiogram.types import CallbackQuery, InlineKeyboardButton, InlineKeyboardMarkup
 from aiogram.utils.formatting import Bold, Text, TextLink
 
-from miniflux_bot.action_worker import MinifluxActionWorker
+from miniflux_bot.action_dispatcher import ActionDispatcher
 from miniflux_bot.models import Entry
 from miniflux_bot.notifier import Notifier, TransientNotifierException
+
+logger = logging.getLogger(__name__)
 
 
 class EntryActionCallbackData(CallbackData, prefix="entry"):
     action: str
-    id: int
+    entry_id: int
 
 
 @dataclass
@@ -30,29 +32,29 @@ class EntryAction:
     display_name: str
     style: str | None = None
 
-    def generate_button(self, entry_id: int) -> InlineKeyboardButton:
+    def build_button(self, entry_id: int) -> InlineKeyboardButton:
         return InlineKeyboardButton(
             text=self.display_name,
             callback_data=EntryActionCallbackData(
                 action=self.key,
-                id=entry_id,
+                entry_id=entry_id,
             ).pack(),
             style=self.style,
         )
 
 
-class TelegramBot(Notifier):
+class TelegramNotifier(Notifier):
     def __init__(
         self,
         token: str,
         chat_id: int,
-        action_worker: MinifluxActionWorker,
+        action_dispatcher: ActionDispatcher,
     ) -> None:
         self._bot = Bot(
             token=token, default=DefaultBotProperties(disable_notification=True)
         )
         self._chat_id = chat_id
-        self._action_worker = action_worker
+        self._action_dispatcher = action_dispatcher
         self._dp = Dispatcher()
         self._dp.callback_query(EntryActionCallbackData.filter())(self._on_action)
         self._actions: dict[str, EntryAction] = {
@@ -61,12 +63,10 @@ class TelegramBot(Notifier):
             "unread": EntryAction(key="unread", display_name="Unread", style="primary"),
         }
 
-    def _generate_keyboard(
+    def _build_keyboard(
         self, entry_id: int, actions: list[str]
     ) -> InlineKeyboardMarkup:
-        buttons = [
-            [self._actions[action].generate_button(entry_id) for action in actions]
-        ]
+        buttons = [[self._actions[action].build_button(entry_id) for action in actions]]
         return InlineKeyboardMarkup(inline_keyboard=buttons)
 
     async def notify(self, entry: Entry) -> None:
@@ -75,7 +75,7 @@ class TelegramBot(Notifier):
             " - ",
             TextLink(entry.title, url=entry.url),
         )
-        keyboard = self._generate_keyboard(
+        keyboard = self._build_keyboard(
             entry_id=entry.id,
             actions=["read", "delete"],
         )
@@ -95,7 +95,7 @@ class TelegramBot(Notifier):
     async def _on_action(
         self, callback: CallbackQuery, callback_data: EntryActionCallbackData
     ) -> None:
-        entry_id = callback_data.id
+        entry_id = callback_data.entry_id
         action = callback_data.action
         message = callback.message
 
@@ -104,53 +104,53 @@ class TelegramBot(Notifier):
             return
 
         try:
-            logging.info(
+            logger.info(
                 "Get action for message: id=%d, action=%s, entry_id=%d",
                 message.chat.id,
                 action,
                 entry_id,
             )
 
-            message_method: Coroutine | None = None
-            action_method: Coroutine | None = None
+            message_coro: Coroutine | None = None
+            action_coro: Coroutine | None = None
 
             match action:
                 case "delete":
-                    message_method = self._bot.delete_message(
+                    message_coro = self._bot.delete_message(
                         chat_id=message.chat.id,
                         message_id=message.message_id,
                     )
-                    action_method = self._action_worker.mark_read(entry_id)
+                    action_coro = self._action_dispatcher.mark_read(entry_id)
                 case "read" | "unread":
                     match action:
                         case "read":
                             toggled = "unread"
-                            action_method = self._action_worker.mark_read(entry_id)
+                            action_coro = self._action_dispatcher.mark_read(entry_id)
                         case "unread":
                             toggled = "read"
-                            action_method = self._action_worker.mark_unread(entry_id)
+                            action_coro = self._action_dispatcher.mark_unread(entry_id)
 
-                    keyboard = self._generate_keyboard(
+                    keyboard = self._build_keyboard(
                         entry_id=entry_id, actions=[toggled, "delete"]
                     )
 
-                    message_method = self._bot.edit_message_reply_markup(
+                    message_coro = self._bot.edit_message_reply_markup(
                         chat_id=message.chat.id,
                         message_id=message.message_id,
                         reply_markup=keyboard,
                     )
 
-            if message_method is not None and action_method is not None:
+            if message_coro is not None and action_coro is not None:
                 await asyncio.gather(
                     self._bot.answer_callback_query(callback.id),
-                    message_method,
-                    action_method,
+                    message_coro,
+                    action_coro,
                 )
             else:
                 await self._bot.answer_callback_query(callback.id)
 
         except Exception as exc:
-            logging.exception("Action '%s' failed with: %s", action, exc)
+            logger.exception("Action '%s' failed with: %s", action, exc)
             return
 
     async def run(self) -> None:

@@ -10,8 +10,10 @@ from miniflux_bot.models import Entry
 from miniflux_bot.notifier import Notifier, TransientNotifierException
 from miniflux_bot.state import StateStore
 
+logger = logging.getLogger(__name__)
 
-class MinifluxBot:
+
+class EntryDispatcher:
     def __init__(
         self,
         state_store: StateStore,
@@ -30,14 +32,14 @@ class MinifluxBot:
 
         self._queue = asyncio.Queue()
 
-    async def _set_processed_id(self, entry_id: int) -> None:
+    async def _advance_processed_id(self, entry_id: int) -> None:
         if entry_id > self._processed_id:
             await self._store.set_processed_id(entry_id)
             self._processed_id = entry_id
 
     async def _poll_loop(self) -> Never:
         try:
-            logging.info("Poll loop started")
+            logger.info("Poll loop started")
             while True:
                 try:
                     unprocessed_entries = await self._gateway.get_unread_since(
@@ -45,35 +47,33 @@ class MinifluxBot:
                     )
 
                     if unprocessed_entries:
-                        logging.info(
-                            "Unprocessed entries: %d", len(unprocessed_entries)
-                        )
+                        logger.info("Unprocessed entries: %d", len(unprocessed_entries))
 
                     for entry in unprocessed_entries:
                         await self._queue.put(entry)
                         self._enqueued_id = entry.id
 
                 except GatewayException as exc:
-                    logging.exception(
+                    logger.exception(
                         "Fetch failed with: %s; will retry next interval", exc
                     )
 
                 await asyncio.sleep(delay=self._poll_interval)
         except asyncio.CancelledError:
-            logging.info("Poll loop cancelled")
+            logger.info("Poll loop cancelled")
             raise
 
-    async def _process_loop(self) -> Never:
+    async def _deliver_loop(self) -> Never:
         loop = asyncio.get_running_loop()
         try:
-            logging.info("Process loop started")
+            logger.info("Deliver loop started")
             while True:
                 entry: Entry = await self._queue.get()
                 try:
                     await self._notifier.notify(entry)
-                    logging.info("Notified: %d", entry.id)
-                    await self._set_processed_id(entry.id)
-                    logging.info("Saved: %d", entry.id)
+                    logger.info("Notified: %d", entry.id)
+                    await self._advance_processed_id(entry.id)
+                    logger.info("Saved: %d", entry.id)
                 except TransientNotifierException as exc:
                     entry.attempt += 1
                     if exc.retry_after is not None:
@@ -81,7 +81,7 @@ class MinifluxBot:
                     else:
                         delay = min(self._retry_cap, 2 ** min(entry.attempt, 16))
 
-                    logging.warning(
+                    logger.warning(
                         "Transient failure on %d (attempt %d), re-queuing in %.0fs: %s",
                         entry.id,
                         entry.attempt,
@@ -91,21 +91,22 @@ class MinifluxBot:
 
                     loop.call_later(delay, self._queue.put_nowait, entry)
                 except Exception as exc:
-                    logging.exception(
+                    logger.exception(
                         "Dropping %d on non-transient error: %s", entry.id, exc
                     )
                 finally:
                     self._queue.task_done()
         except asyncio.CancelledError:
-            logging.info("Process loop cancelled")
+            logger.info("Deliver loop cancelled")
             raise
 
     async def run(self) -> None:
         self._processed_id = await self._store.get_processed_id()
+        logger.info("Resuming from processed_id=%d", self._processed_id)
         self._enqueued_id = self._processed_id
         try:
-            async with asyncio.TaskGroup() as tg:
-                tg.create_task(self._poll_loop(), name="poll_loop")
-                tg.create_task(self._process_loop(), name="process_loop")
+            async with asyncio.TaskGroup() as task_group:
+                task_group.create_task(self._poll_loop(), name="poll_loop")
+                task_group.create_task(self._deliver_loop(), name="deliver_loop")
         finally:
-            logging.info("Shutting down")
+            logger.info("Shutting down")

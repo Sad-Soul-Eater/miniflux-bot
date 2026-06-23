@@ -7,7 +7,7 @@ the [README](README.md).
 
 The bot runs two cooperating async tasks:
 
-- **Miniflux poller** - every `MINIFLUX_POLL_INTERVAL` seconds it asks Miniflux for the latest unread entry. If anything
+- **Miniflux poller** - every `POLL_INTERVAL` seconds it asks Miniflux for the latest unread entry. If anything
   new has appeared since the last enqueued entry, it fetches all unread entries since that point and queues them for
   delivery.
 - **Telegram notifier** - drains the queue and sends one message per entry. The message shows the feed title and a link
@@ -17,7 +17,7 @@ The bot runs two cooperating async tasks:
 Delivery is at-least-once and ordered by entry ID. The highest successfully-delivered entry ID is persisted as
 `processed_id`, so the bot resumes where it left off after a restart instead of replaying old entries.
 
-State lives behind the `StateStore` interface, chosen by `MINIFLUX_STORE_BACKEND`: `SqliteStateStore` (backing both the
+State lives behind the `StateStore` interface, chosen by `STATE_BACKEND`: `SqliteStateStore` (backing both the
 `sqlite` file and the in-memory `:memory:` backend) or `PostgresStateStore`. SQLite wraps the synchronous `sqlite3`
 driver in `asyncio.to_thread`; Postgres uses psycopg's native async API over a connection pool that health-checks each
 checkout, so it transparently reconnects when the database restarts (e.g. during a cluster upgrade).
@@ -26,18 +26,23 @@ Transient failures (Telegram rate limits, network/server errors) re-queue the en
 `retry_after` when provided, otherwise exponential backoff capped at 300s. Non-transient errors drop the entry and log
 it.
 
+Button taps don't call Miniflux inline. The Telegram callback hands the mark-read/unread off to `ActionDispatcher`,
+which owns its own queue and retries with the same backoff - so actions survive a Miniflux outage instead of being lost
+when the user taps during one.
+
 ## Project layout
 
-| File          | Responsibility                                                             |
-|---------------|----------------------------------------------------------------------------|
-| `__main__.py` | Wires up config, state store, gateway, and bots; runs them in a task group |
-| `bot.py`      | `MinifluxBot` - poll loop, delivery queue, retry/backoff                   |
-| `telegram.py` | `TelegramBot` - sends messages, handles inline button callbacks            |
-| `gateway.py`  | `MinifluxGateway` - async wrapper over the Miniflux client                 |
-| `state/`      | `StateStore` ABC + SQLite/Postgres backends - persists `processed_id`      |
-| `notifier.py` | `Notifier` interface and transient-failure exception                       |
-| `models.py`   | `Entry` domain model                                                       |
-| `config.py`   | Environment variable helpers                                               |
+| File                   | Responsibility                                                                |
+|------------------------|-------------------------------------------------------------------------------|
+| `__main__.py`          | Wires up config, state store, gateway, dispatchers; runs them in a task group |
+| `entry_dispatcher.py`  | `EntryDispatcher` - poll loop, delivery queue, notify with retry              |
+| `action_dispatcher.py` | `ActionDispatcher` - queues Miniflux mark-read/unread, retries with backoff   |
+| `telegram_notifier.py` | `TelegramNotifier` - sends messages, handles inline button callbacks          |
+| `gateway.py`           | `MinifluxGateway` - async wrapper over the Miniflux client                    |
+| `state/`               | `StateStore` ABC + SQLite/Postgres backends - persists `processed_id`         |
+| `notifier.py`          | `Notifier` interface and transient-failure exception                          |
+| `models.py`            | `Entry` domain model                                                          |
+| `config.py`            | Environment variable helpers                                                  |
 
 ## Local development
 
@@ -48,7 +53,7 @@ uv sync
 uv run ruff check .
 uv run ruff format --check .
 uv run pyrefly check
-MINIFLUX_SQLITE_STORE_PATH=. uv run python -m miniflux_bot
+STATE_SQLITE_PATH=. uv run python -m miniflux_bot
 ```
 
 ## Continuous integration
@@ -86,5 +91,5 @@ to a `0.0.0` default.
 
 [aiogram](https://docs.aiogram.dev/) for Telegram, the official [miniflux](https://pypi.org/project/miniflux/) client
 for the feed reader, [python-dotenv](https://pypi.org/project/python-dotenv/) for local configuration, and
-[psycopg](https://www.psycopg.org/psycopg3/) (with its async connection pool) for the Postgres state backend. Managed with
-[uv](https://docs.astral.sh/uv/) and built with [hatchling](https://hatch.pypa.io/) + hatch-vcs.
+[psycopg](https://www.psycopg.org/psycopg3/) (with its async connection pool) for the Postgres state backend.
+Managed with [uv](https://docs.astral.sh/uv/) and built with [hatchling](https://hatch.pypa.io/) + hatch-vcs.
