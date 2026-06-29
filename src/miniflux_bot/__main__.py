@@ -37,6 +37,7 @@ async def main() -> None:
             "root": {"level": log_level, "handlers": ["console"]},
             "loggers": {
                 "aiogram": {"level": log_level},
+                "aiosqlite": {"level": log_level},
                 "psycopg": {"level": log_level},
             },
         }
