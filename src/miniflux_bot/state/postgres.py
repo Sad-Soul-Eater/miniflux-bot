@@ -20,7 +20,14 @@ class PostgresStateStore(StateStore):
 
     async def init(self) -> None:
         await self._pool.open(wait=True)
-        await self._init_db()
+        async with self._pool.connection() as conn:
+            await conn.execute(
+                "CREATE TABLE IF NOT EXISTS miniflux_bot_state (key TEXT PRIMARY KEY, value BIGINT)"
+            )
+            await conn.execute(
+                "INSERT INTO miniflux_bot_state (key, value) VALUES (%s, %s) ON CONFLICT (key) DO NOTHING",
+                ("processed_id", 0),
+            )
         logger.info(
             "Postgres pool opened (min=%d max=%d)",
             self._pool.min_size,
@@ -31,16 +38,6 @@ class PostgresStateStore(StateStore):
         if self._pool.closed:
             return
         await self._pool.close()
-
-    async def _init_db(self) -> None:
-        async with self._pool.connection() as conn:
-            await conn.execute(
-                "CREATE TABLE IF NOT EXISTS miniflux_bot_state (key TEXT PRIMARY KEY, value BIGINT)"
-            )
-            await conn.execute(
-                "INSERT INTO miniflux_bot_state (key, value) VALUES (%s, %s) ON CONFLICT (key) DO NOTHING",
-                ("processed_id", 0),
-            )
 
     async def get_processed_id(self) -> int:
         async with self._pool.connection() as conn:
