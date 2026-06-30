@@ -1,6 +1,6 @@
 # Install uv
 FROM python:3.14.6-slim AS builder
-COPY --from=ghcr.io/astral-sh/uv:0.11.25 /uv /uvx /bin/
+COPY --from=ghcr.io/astral-sh/uv:0.11.26 /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
     UV_LINK_MODE=copy \
