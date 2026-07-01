@@ -20,6 +20,8 @@ class SqliteStateStore(StateStore):
 
     async def init(self) -> None:
         self._conn = await aiosqlite.connect(database=self._path, autocommit=True)
+        await self._connection.execute("PRAGMA journal_mode=WAL")
+        await self._connection.execute("PRAGMA synchronous=NORMAL")
         await self._connection.execute(
             "CREATE TABLE IF NOT EXISTS state (key TEXT PRIMARY KEY, value INTEGER)"
         )
