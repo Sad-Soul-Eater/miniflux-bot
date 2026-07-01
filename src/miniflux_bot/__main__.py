@@ -106,6 +106,7 @@ async def main() -> None:
             task_group.create_task(entry_dispatcher.run(), name="entry_dispatcher")
     finally:
         await state_store.close()
+        await asyncio.to_thread(miniflux_client.close)
         logger.info("Shutdown complete")
 
 
