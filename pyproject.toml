@@ -3,7 +3,7 @@ name = "miniflux-bot"
 dynamic = ["version"]
 requires-python = ">=3.14"
 dependencies = [
-    "aiogram==3.29.1",
+    "aiogram==3.30.0",
     "aiosqlite==0.22.1",
     "miniflux==1.1.6",
     "psycopg-pool==3.3.1",
