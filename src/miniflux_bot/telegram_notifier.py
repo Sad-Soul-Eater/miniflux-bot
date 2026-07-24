@@ -149,8 +149,8 @@ class TelegramNotifier(Notifier):
             else:
                 await self._bot.answer_callback_query(callback.id)
 
-        except Exception as exc:
-            logger.exception("Action '%s' failed with: %s", action, exc)
+        except Exception:
+            logger.exception("Action '%s' failed with:", action)
             return
 
     async def run(self) -> None:

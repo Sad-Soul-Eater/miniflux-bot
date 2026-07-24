@@ -53,10 +53,8 @@ class EntryDispatcher:
                         await self._queue.put(entry)
                         self._enqueued_id = entry.id
 
-                except GatewayException as exc:
-                    logger.exception(
-                        "Fetch failed with: %s; will retry next interval", exc
-                    )
+                except GatewayException:
+                    logger.exception("Fetch failed with: %s; will retry next interval")
 
                 await asyncio.sleep(delay=self._poll_interval)
         except asyncio.CancelledError:
@@ -90,10 +88,8 @@ class EntryDispatcher:
                     )
 
                     loop.call_later(delay, self._queue.put_nowait, entry)
-                except Exception as exc:
-                    logger.exception(
-                        "Dropping %d on non-transient error: %s", entry.id, exc
-                    )
+                except Exception:
+                    logger.exception("Dropping %d on non-transient error:", entry.id)
                 finally:
                     self._queue.task_done()
         except asyncio.CancelledError:

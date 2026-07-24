@@ -57,12 +57,11 @@ class ActionDispatcher:
                     )
 
                     loop.call_later(delay, self._queue.put_nowait, action)
-                except Exception as exc:
+                except Exception:
                     logger.exception(
-                        "Dropping %s on %d (non-transient): %s",
+                        "Dropping %s on %d (non-transient):",
                         action.status,
                         action.entry_id,
-                        exc,
                     )
                 finally:
                     self._queue.task_done()
