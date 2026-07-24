@@ -46,7 +46,7 @@ async def main() -> None:
 
     url = require_env("MINIFLUX_URL")
     api_key = require_env("MINIFLUX_API_KEY")
-    poll_interval = int(os.getenv("POLL_INTERVAL", 60))
+    poll_interval = int(os.getenv("POLL_INTERVAL", "60"))
     tg_bot_token = require_env("TELEGRAM_BOT_TOKEN")
     tg_chat_id = int(require_env("TELEGRAM_CHAT_ID"))
     state_backend = os.getenv("STATE_BACKEND", "sqlite")
