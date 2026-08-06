@@ -1,5 +1,5 @@
 # Install uv
-FROM python:3.14.6-slim AS builder
+FROM python:3.14.7-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.12.2 /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
@@ -25,7 +25,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-editable
 
-FROM python:3.14.6-slim
+FROM python:3.14.7-slim
 
 WORKDIR /app
 
