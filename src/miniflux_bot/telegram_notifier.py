@@ -1,11 +1,13 @@
 import asyncio
 import logging
+import time
 from collections.abc import Coroutine
 from dataclasses import dataclass
 
 from aiogram import Bot, Dispatcher
 from aiogram.client.default import DefaultBotProperties
 from aiogram.exceptions import (
+    TelegramBadRequest,
     TelegramNetworkError,
     TelegramRetryAfter,
     TelegramServerError,
@@ -140,14 +142,23 @@ class TelegramNotifier(Notifier):
                         reply_markup=keyboard,
                     )
 
+            reply: str | None = None
             if message_coro is not None and action_coro is not None:
-                await asyncio.gather(
-                    self._bot.answer_callback_query(callback.id),
-                    message_coro,
-                    action_coro,
-                )
-            else:
-                await self._bot.answer_callback_query(callback.id)
+                try:
+                    await asyncio.gather(
+                        message_coro,
+                        action_coro,
+                    )
+                except TelegramBadRequest as exc:
+                    if (
+                        time.time() - message.date.timestamp() >= 48 * 60 * 60
+                        and exc.message.casefold()
+                        == "bad request: message can't be deleted for everyone"
+                    ):
+                        reply = "Messages older than 48 hours cannot be deleted"
+                    else:
+                        raise
+            await self._bot.answer_callback_query(callback.id, text=reply)
 
         except Exception:
             logger.exception("Action '%s' failed with:", action)
