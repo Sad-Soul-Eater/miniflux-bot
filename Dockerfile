@@ -1,5 +1,5 @@
 # Install uv
-FROM python:3.14.8-slim AS builder
+FROM python:3.15.0-slim AS builder
 COPY --from=ghcr.io/astral-sh/uv:0.13.4 /uv /uvx /bin/
 
 ENV UV_COMPILE_BYTECODE=1 \
@@ -8,6 +8,10 @@ ENV UV_COMPILE_BYTECODE=1 \
 
 # Change the working directory to the `app` directory
 WORKDIR /app
+
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && apt --no-install-recommends install -y build-essential
 
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
@@ -25,7 +29,7 @@ COPY . /app
 RUN --mount=type=cache,target=/root/.cache/uv \
     uv sync --locked --no-dev --no-editable
 
-FROM python:3.14.8-slim
+FROM python:3.15.0-slim
 
 WORKDIR /app
 
