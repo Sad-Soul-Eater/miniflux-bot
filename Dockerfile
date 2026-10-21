@@ -9,6 +9,10 @@ ENV UV_COMPILE_BYTECODE=1 \
 # Change the working directory to the `app` directory
 WORKDIR /app
 
+RUN --mount=type=cache,target=/var/cache/apt,sharing=locked \
+    --mount=type=cache,target=/var/lib/apt,sharing=locked \
+    apt update && apt --no-install-recommends install -y build-essential
+
 # Install dependencies
 RUN --mount=type=cache,target=/root/.cache/uv \
     --mount=type=bind,source=pyproject.toml,target=pyproject.toml \
